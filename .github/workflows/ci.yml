@@ -1,0 +1,41 @@
+name: AutoDev CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Python dependencies
+        run: pip install -e ".[test]"
+      - name: Run Python tests
+        run: pytest -q
+      - name: Verify Docker is available
+        run: docker version
+      - name: Verify sandbox constraints
+        run: docker run --rm --network none --cpus 1 --memory 512m --pids-limit 128 --cap-drop ALL --security-opt no-new-privileges python:3.12-slim python -c "print('sandbox ok')"
+      - name: Run benchmark through CMake and CTest
+        shell: bash
+        run: |
+          set +e
+          cmake -S benchmarks/cpp_bug_001 -B benchmarks/cpp_bug_001/build
+          cmake --build benchmarks/cpp_bug_001/build
+          ctest --test-dir benchmarks/cpp_bug_001/build --output-on-failure
+          status=$?
+          test "$status" -ne 0
+          set -e
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('benchmarks/cpp_bug_001/main.cpp')
+          s = p.read_text()
+          s = s.replace('std::accumulate(values.begin(), values.end(), 0) / values.size()', 'static_cast<double>(std::accumulate(values.begin(), values.end(), 0)) / values.size()')
+          p.write_text(s)
+          PY
+          cmake --build benchmarks/cpp_bug_001/build
+          ctest --test-dir benchmarks/cpp_bug_001/build --output-on-failure

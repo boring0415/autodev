@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.16)
+project(cpp_bug_001 LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+enable_testing()
+add_executable(cpp_bug_001 main.cpp)
+add_test(NAME average_test COMMAND cpp_bug_001)
