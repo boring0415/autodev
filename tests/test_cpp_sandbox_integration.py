@@ -49,7 +49,9 @@ def test_real_cpp_agent_loop_in_docker(tmp_path: Path):
             ]
 
         def generate(self, messages):
-            return json.dumps(self.actions.pop(0))
+            if self.actions:
+                return json.dumps(self.actions.pop(0))
+            return json.dumps({"action": "finish", "status": "failure", "summary": "scripted retry exhausted"})
 
     state = AgentState(task="fix calculate_average", repository_path=str(repo), max_iterations=6)
     result = Agent(state, ScriptedProvider(), default_tools(), repo / ".autodev" / "run.jsonl",
