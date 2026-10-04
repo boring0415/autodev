@@ -45,6 +45,7 @@ def test_real_cpp_agent_loop_in_docker(tmp_path: Path):
                 {"action": "tool", "phase": "ANALYZE", "tool": "read_file", "arguments": {"path": "main.cpp"}},
                 {"action": "plan", "items": ["replace integer division with floating point division"]},
                 {"action": "tool", "phase": "EXECUTE", "tool": "edit_file", "arguments": {"path": "main.cpp", "content": fixed}},
+                {"action": "tool", "phase": "REFLECT", "tool": "edit_file", "arguments": {"path": "main.cpp", "content": fixed}},
             ]
 
         def generate(self, messages):
@@ -53,7 +54,7 @@ def test_real_cpp_agent_loop_in_docker(tmp_path: Path):
     state = AgentState(task="fix calculate_average", repository_path=str(repo), max_iterations=6)
     result = Agent(state, ScriptedProvider(), default_tools(), repo / ".autodev" / "run.jsonl",
                     ["sh", "-lc", "cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure"]).run()
-    assert result.current_phase is Phase.FINISH
+    assert result.current_phase is Phase.FINISH, result.model_dump_json()
     assert result.verification_passed
     assert result.test_result is not None and result.test_result.exit_code == 0
     assert (repo / "main.cpp").read_text(encoding="utf-8") == fixed
