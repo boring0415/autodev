@@ -14,6 +14,8 @@ jobs:
           python-version: '3.12'
       - name: Install Python dependencies
         run: pip install -e ".[test]"
+      - name: Build C++ sandbox image
+        run: docker build -f Dockerfile.sandbox.cpp -t autodev-cpp-sandbox:latest .
       - name: Run Python tests
         run: pytest -q
       - name: Verify Docker is available

@@ -29,10 +29,10 @@ class Agent:
         if not self.state.run_id:
             self.state.run_id = self.logger.run_id if self.logger else str(uuid.uuid4())
         while self.can_iterate() and self.state.current_phase not in (Phase.FINISH, Phase.FAILED):
-            self.state.iteration += 1
             if self.state.current_phase is Phase.VERIFY and self.verify_command:
                 self._run_verification()
                 continue
+            self.state.iteration += 1
             prompt = self._prompt()
             if self.logger:
                 self.logger.event(phase=self.state.current_phase.value, event="llm_call", iteration=self.state.iteration)
@@ -62,6 +62,7 @@ class Agent:
         result = tool.run(self.context, command=self.verify_command, timeout=120)
         data = result.model_dump()
         self.state.tool_calls += 1
+        self.state.verification_runs += 1
         self.state.tool_history.append({"tool": "run_command", "arguments": {"command": self.verify_command, "timeout": 120}, "result": data})
         from .state import CommandResult
         if isinstance(result.output, dict):
@@ -70,8 +71,9 @@ class Agent:
         if self.logger:
             self.logger.event(phase=Phase.VERIFY.value, event="tool_call", iteration=self.state.iteration,
                               tool="run_command", arguments={"command": self.verify_command, "timeout": 120}, result=data)
-        self.state.current_phase = Phase.REFLECT if not result.ok else Phase.FINISH
-        if result.ok:
+        self.state.verification_passed = result.ok and self.state.last_command_result is not None and self.state.last_command_result.exit_code == 0
+        self.state.current_phase = Phase.REFLECT if not self.state.verification_passed else Phase.FINISH
+        if self.state.verification_passed:
             self.state.final_status = "verified"
             self.state.summary = "verification command passed"
 
@@ -100,9 +102,15 @@ class Agent:
             self.state.current_phase = Phase.EXECUTE
             return
         if kind == "finish":
-            self.state.summary = str(action.get("summary", ""))
-            self.state.final_status = str(action.get("status", "success"))
-            self.state.current_phase = Phase.FINISH
+            requested_status = str(action.get("status", "success"))
+            if requested_status == "success" and self.verify_command and not self.state.verification_passed:
+                self.state.current_phase = Phase.REFLECT
+                self.state.final_status = "verification required before success"
+                self.state.summary = "model finish rejected by verification gate"
+            else:
+                self.state.summary = str(action.get("summary", ""))
+                self.state.final_status = requested_status
+                self.state.current_phase = Phase.FINISH
             return
         if kind != "tool":
             raise ValueError("unsupported action")

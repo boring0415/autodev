@@ -36,7 +36,7 @@ def run(
     repo: Path = typer.Option(..., "--repo", help="Local repository path"),
     task: str = typer.Option(..., "--task", help="Natural-language software task"),
     max_iterations: int = typer.Option(5, "--max-iterations", min=1),
-    verify_command: str | None = typer.Option(None, "--verify-command", help="Command run in Docker after edits, e.g. 'ctest --test-dir build --output-on-failure'"),
+    verify_command: str = typer.Option("cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure", "--verify-command", help="Shell command run in Docker after edits"),
 ) -> None:
     """Run the bounded coding-agent loop against a local repository."""
     repo = repo.resolve()
@@ -47,7 +47,7 @@ def run(
         raise typer.BadParameter("missing environment variables: " + ", ".join(missing))
     provider = OpenAICompatibleProvider(os.environ["LLM_BASE_URL"], os.environ["LLM_API_KEY"], os.environ["LLM_MODEL"])
     state = AgentState(task=task, repository_path=str(repo), max_iterations=max_iterations)
-    command = shlex.split(verify_command) if verify_command else None
+    command = ["sh", "-lc", verify_command]
     result = Agent(state, provider, default_tools(), repo / ".autodev" / "run.jsonl", command).run()
     typer.echo(result.model_dump_json(indent=2))
 

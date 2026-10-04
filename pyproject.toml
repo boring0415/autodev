@@ -21,6 +21,9 @@ autodev = "autodev.cli:app"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+  "integration: executes the real Docker C++ sandbox",
+]
 
 [tool.setuptools.packages.find]
 include = ["autodev*"]

@@ -39,3 +39,5 @@ class AgentState(BaseModel):
     duration_seconds: float | None = None
     llm_calls: int = 0
     tool_calls: int = 0
+    verification_runs: int = 0
+    verification_passed: bool = False

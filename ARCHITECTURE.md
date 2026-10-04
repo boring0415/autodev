@@ -2,7 +2,7 @@
 
 ## Agent Loop
 
-目标闭环是 `ANALYZE -> PLAN -> EXECUTE -> VERIFY -> REFLECT -> RETRY -> FINISH`。当前 Agent 每轮要求 Provider 返回一个 JSON 动作（plan、tool 或 finish），执行后把结果写回状态，并受 `max_iterations` 限制；状态机比一个无界 `while true` 更容易解释、测试和恢复。
+目标闭环是 `ANALYZE -> PLAN -> EXECUTE -> VERIFY -> REFLECT -> RETRY -> FINISH`。当前 Agent 每个 reasoning turn 要求 Provider 返回一个 JSON 动作（plan、tool 或 finish），执行后把结果写回状态，并受 `max_iterations` 限制。系统自动 VERIFY 不消耗 reasoning turn，单独统计为 `verification_runs`；这样上限表示模型思考次数，而不是 Docker 命令次数。
 
 ## Tool System
 
@@ -10,7 +10,11 @@
 
 ## Sandbox
 
-`run_command` 只委托给 `DockerRunner`；runner 接受 timeout、工作目录和资源限制，并返回 stdout、stderr、exit code。当前默认关闭网络、限制 CPU/内存/PID、丢弃 Linux capabilities，并启用 no-new-privileges。模型生成的命令不应直接交给宿主 shell。
+`Dockerfile.sandbox.cpp` 构建 `autodev-cpp-sandbox:latest`，包含 gcc/g++、CMake、CTest、Git 和基础证书。`run_command` 只委托给 `DockerRunner`；runner 接受 timeout、工作目录和资源限制，并返回 stdout、stderr、exit code。当前默认关闭网络、限制 CPU/内存/PID、丢弃 Linux capabilities，并启用 no-new-privileges。模型生成的命令不应直接交给宿主 shell。
+
+## Verification Gate
+
+当配置 `verify_command` 时，模型的 `finish/success` 不能直接结束任务。编辑成功会自动进入 VERIFY，系统执行命令；只有命令返回 exit code 0，`verification_passed` 才为真并进入 FINISH。失败进入 REFLECT，失败 stdout/stderr 会进入下一轮 Provider 状态。
 
 ## State Model
 
@@ -26,7 +30,7 @@ Agent 只依赖 `LLMProvider` 协议。`OpenAICompatibleProvider` 通过 `LLM_BA
 
 ## Benchmark
 
-`benchmarks/cpp_bug_001` 是最小 CMake + CTest 项目。故意的整数除法 bug 让初始测试失败；修复后全部测试通过，作为 AutoDev 第一条端到端演示。
+`benchmarks/cpp_bug_001` 是最小 CMake + CTest 项目。故意的整数除法 bug 让初始测试失败；修复后全部测试通过，作为 AutoDev 第一条端到端演示。测试层次分为 pytest unit tests、真实 Docker/CMake/CTest integration tests，以及需要真实 LLM API 的 demo。普通 CI 不调用真实 LLM，使用 scripted provider 验证完整工具链。
 
 ## Why this shape
 

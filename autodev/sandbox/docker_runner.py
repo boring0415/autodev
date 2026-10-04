@@ -11,7 +11,7 @@ class DockerResult(BaseModel):
 
 
 class DockerRunner:
-    def __init__(self, image: str = "python:3.12-slim"):
+    def __init__(self, image: str = "autodev-cpp-sandbox:latest"):
         self.image = image
 
     def run(self, command: list[str], *, repository_root: Path, timeout: int = 30) -> DockerResult:
@@ -31,3 +31,5 @@ class DockerRunner:
             return DockerResult(stdout=completed.stdout, stderr=completed.stderr, exit_code=completed.returncode)
         except subprocess.TimeoutExpired as exc:
             return DockerResult(stdout=exc.stdout or "", stderr=exc.stderr or "", timed_out=True)
+        except FileNotFoundError as exc:
+            return DockerResult(stderr=str(exc), exit_code=127)

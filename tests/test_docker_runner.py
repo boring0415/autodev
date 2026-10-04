@@ -12,3 +12,9 @@ def test_docker_command_timeout(tmp_path):
 def test_docker_rejects_invalid_command(tmp_path):
     result = DockerRunner().run([], repository_root=Path(tmp_path), timeout=1)
     assert result.exit_code == 2
+
+
+def test_missing_docker_is_structured(tmp_path):
+    with patch("autodev.sandbox.docker_runner.subprocess.run", side_effect=FileNotFoundError("docker missing")):
+        result = DockerRunner().run(["g++", "--version"], repository_root=Path(tmp_path))
+    assert result.exit_code == 127

@@ -27,6 +27,12 @@ pip install -e ".[test]"
 
 同时需要 Docker Engine/Desktop、CMake、CTest 和 Git。用 `autodev doctor` 检查它们是否在 PATH 中。
 
+构建 C++ Sandbox 镜像：
+
+```bash
+docker build -f Dockerfile.sandbox.cpp -t autodev-cpp-sandbox:latest .
+```
+
 项目包含 GitHub Actions CI（`.github/workflows/ci.yml`）。如果本机没有 Docker，可以推送到 GitHub，由 Linux runner 自动完成 Python、Docker、CMake、CTest 和 Benchmark 验证。
 
 ## 配置
@@ -87,4 +93,4 @@ Benchmark 初始测试应失败，因为 `calculate_average` 使用了整数除�
 
 ## 当前限制与路线图
 
-当前 loop 已支持有限迭代、结构化动作、工具结果和 JSONL 事件日志；仍未实现自动测试命令推断、错误反思提示优化、Docker 镜像构建与完整修复演示。
+当前 loop 已支持有限迭代、结构化动作、工具结果、Verification Gate 和 JSONL 事件日志。真实 Docker 集成测试使用 scripted provider；真实 LLM demo 需要用户配置 Provider，不在普通 CI 中调用。
