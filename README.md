@@ -52,7 +52,7 @@ autodev run --repo ./benchmarks/cpp_bug_001 --task "修复 calculate_average 函
 ```bash
 autodev run --repo ./benchmarks/cpp_bug_001 \
   --task "修复 calculate_average 函数，使全部测试通过" \
-  --verify-command "ctest --test-dir build --output-on-failure"
+  --verify-command "cmake -S . -B /tmp/autodev-build && cmake --build /tmp/autodev-build && ctest --test-dir /tmp/autodev-build --output-on-failure"
 ```
 
 编辑成功后 Agent 会自动进入 `VERIFY`，在 Docker 中执行该命令；失败输出会进入下一轮 `REFLECT`/重试。

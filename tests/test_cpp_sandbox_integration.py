@@ -55,7 +55,7 @@ def test_real_cpp_agent_loop_in_docker(tmp_path: Path):
 
     state = AgentState(task="fix calculate_average", repository_path=str(repo), max_iterations=6)
     result = Agent(state, ScriptedProvider(), default_tools(), repo / ".autodev" / "run.jsonl",
-                    ["sh", "-lc", "cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure"]).run()
+                    ["sh", "-lc", "cmake -S . -B /tmp/autodev-build && cmake --build /tmp/autodev-build && ctest --test-dir /tmp/autodev-build --output-on-failure"]).run()
     assert result.current_phase is Phase.FINISH, result.model_dump_json()
     assert result.verification_passed, result.model_dump_json()
     assert result.test_result is not None and result.test_result.exit_code == 0

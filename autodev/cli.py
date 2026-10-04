@@ -36,7 +36,7 @@ def run(
     repo: Path = typer.Option(..., "--repo", help="Local repository path"),
     task: str = typer.Option(..., "--task", help="Natural-language software task"),
     max_iterations: int = typer.Option(5, "--max-iterations", min=1),
-    verify_command: str = typer.Option("cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure", "--verify-command", help="Shell command run in Docker after edits"),
+    verify_command: str = typer.Option("cmake -S . -B /tmp/autodev-build && cmake --build /tmp/autodev-build && ctest --test-dir /tmp/autodev-build --output-on-failure", "--verify-command", help="Shell command run in Docker after edits"),
 ) -> None:
     """Run the bounded coding-agent loop against a local repository."""
     repo = repo.resolve()
